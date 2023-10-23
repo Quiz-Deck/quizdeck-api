@@ -4,20 +4,20 @@ var DeckController = require('../controllers/DeckController');
 var middlewares = require("../utils/middleware.js");
 
 
-//Get all decks for a user
-router.get('/user',middlewares.checkToken, DeckController.userdeck);
+//Create a deck
+router.post('/create', middlewares.checkToken, DeckController.create);
 
 //Get all public decks
 router.get('/public', DeckController.public);
 
+//Edit a deck
+router.put('/edit/:id', middlewares.checkToken, DeckController.update);
+
 //Get a particular deck
 router.get('/:id', middlewares.checkToken, DeckController.getone);
 
-//Create a deck
-router.post('/create', middlewares.checkToken, DeckController.create);
-
-//Edit a deck
-router.post('/edit/:id', middlewares.checkToken, DeckController.update);
+//Get all decks for a user
+router.get('/user',middlewares.checkToken, DeckController.userdeck);
 
 //Delete a deck
 router.delete('/:id', middlewares.checkToken, DeckController.delete);

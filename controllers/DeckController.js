@@ -5,18 +5,21 @@ module.exports = {
 
     //Create a deck
     create: async function (req, res) {
-        if (!req.body.name) {
+        if (!req.body.title) {
             return res.status(400).json({ message: "Deck name is required." });
         }
         try {
             var Deck = new DeckModel({
-                name: req.body.name,
+                createdBy: req.verified._id,
+                updatedBy: req.verified._id,
+                title: req.body.title,
                 description: req.body.description,
-                public: req.body.public,
-                deckgenerator: req.verified._id,
+                deckGuests: req.body.guests,
+                type: req.body.type,
+                status: req.body.status,
             });
 
-            Deck.save(function (err, User) {
+            Deck.save(function (err, Deck) {
                 if (err) {
                     return res.status(500).json({
                         message: 'Error when creating Deck',
@@ -27,7 +30,6 @@ module.exports = {
             });
 
         } catch (error) {
-
             return res.status(500).json({
                 message: 'Error processing requests.',
                 error: error
@@ -51,9 +53,18 @@ module.exports = {
                 });
             }
 
-            Deck.name = req.body.name ? req.body.name : Deck.name;
+            if(req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE"){
+                return res.status(500).json({
+                    message: 'Private can only be edited by creator',
+                    error: err
+                });
+            }
+            Deck.title = req.body.title ? req.body.title : Deck.title;
 			Deck.description = req.body.description ? req.body.description : Deck.description;
-			Deck.public = req.body.public ? req.body.public : Deck.public;
+			Deck.type = req.body.type ? req.body.type : Deck.type;
+            Deck.updatedBy = req.verified._id;
+            Deck.status = req.body.status ? req.body.status : Deck.status;
+            Deck.deckGuests = req.body.deckGuests ? req.body.deckGuests : Deck.deckGuests,
 			
             Deck.save(function (err, Deck) {
                 if (err) {
@@ -72,8 +83,14 @@ module.exports = {
     getone: async function (req, res) {
         var id = req.params.id;
         try{
-            let onedeck = await DeckModel.find({_id: id}).populate('deckquestions').exec();
-            return res.status(200).json({data: onedeck});
+            let Deck = await DeckModel.find({_id: id}).populate('questions').exec();
+            if(req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE"){
+                return res.status(500).json({
+                    message: 'Private decks can only be gotten by their creators',
+                    error: err
+                });
+            }
+            return res.status(200).json({message: "Deck gotten successfully!", data: Deck});
         }
         catch(err) {
             return res.status(500).json({
@@ -86,7 +103,7 @@ module.exports = {
     //Delete a deck
     delete: function (req, res) {
         var id = req.params.id;
-        DeckModel.findByIdAndRemove(id, function (err, Deck) {
+        DeckModel.findByIdAndRemove(id, function (err) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when deleting this Deck.',
@@ -100,8 +117,8 @@ module.exports = {
     //Get  deck by a particular user
     userdeck: async function (req, res) {
         try{
-            let alluserdecks = await DeckModel.find({deckgenerator: req.verified._id}).populate('deckquestions').exec();
-            return res.status(200).json({data: alluserdecks});
+            let Deck = await DeckModel.find({createdBy: req.verified._id}).populate('questions').exec();
+            return res.status(200).json({data: Deck});
         }
         catch(err) {
             return res.status(500).json({
@@ -114,8 +131,8 @@ module.exports = {
     //Get all public decks
     public: async function (req, res) {
         try{
-            let alluserdecks = await DeckModel.find({public: true}).populate('deckquestions').exec();
-            return res.status(200).json({data: alluserdecks});
+            let alluserdecks = await DeckModel.find({type: "PUBLIC", status: "PUBLISHED"}).populate('questions').exec();
+            return res.status(200).json({message:"All Public Decks", data: alluserdecks});
         }
         catch(err) {
             return res.status(500).json({

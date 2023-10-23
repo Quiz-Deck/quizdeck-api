@@ -1,11 +1,11 @@
 module.exports = {
     'port': process.env.PORT || 3000,
 
-    // 'baseurl': "",
-    // 'database': 'mongodb://127.0.0.1:27017',
+    'baseurl': "",
+    'database': 'mongodb://127.0.0.1:27017/quizdeck',
 
-    'baseurl': "https://quizdeckapp.herokuapp.com",
-    'database' : 'mongodb+srv://ada-h:ifo2zg53dEW8WfhQ@cluster0.urvrm.mongodb.net/quizdeck?retryWrites=true&w=majority',
+    // 'baseurl': "https://quizdeckapp.herokuapp.com",
+    // 'database' : 'mongodb+srv://ada-h:ifo2zg53dEW8WfhQ@cluster0.urvrm.mongodb.net/quizdeck?retryWrites=true&w=majority',
     'secret': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVnd3VhbnlpMDQyQGdtYWlsLmNvbSIsImlhdCI6MTU1NjM2Mzk0OCwiZXhwIjoxNTU2MzY0MzA4fQ',
     'hash' : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVnd3VhbnlpMDQyQGdtYWlsLmNvbSIsImlhdCI6MTU1NjM2Mzk0OCwiZXhwIjoxNTU2MzY0MzA4fQ.hlvsog5NVcZphKxpJPPBBoMww9XRNZ-_h51osqyBqPg/',
     generateCode: function () {

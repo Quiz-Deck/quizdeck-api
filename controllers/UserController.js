@@ -29,9 +29,9 @@ module.exports = {
 
             var User = new UserModel({
                 email: req.body.email,
-                username: req.body.username,
-                phonenumber: req.body.phonenumber,
-                password: req.body.password
+                userName: req.body.userName,
+                phoneNumber: req.body.phoneNumber,
+                password: req.body.password,
             });
     
             User.save(function (err, User) {
@@ -41,7 +41,9 @@ module.exports = {
                         error: err
                     });
                 }
-                return res.status(201).json({ message: 'User created successfully', data: User });
+                const responseUser = { ...User._doc };
+                delete responseUser.password;
+                return res.status(201).json({ message: 'User created successfully', data: responseUser });
             });
         } catch (error) {
 
@@ -85,11 +87,13 @@ module.exports = {
                 }, config.secret, {
                     expiresIn: 86400000 * 30 // expires in 30 days
                 });
+                const responseUser = { ...user._doc };
+                delete responseUser.password;
                 return res.status(200).json({
                     success: true,
                     message: 'Login successful!',
                     token: token,
-                    data: user
+                    data: responseUser
                 });
 
             }

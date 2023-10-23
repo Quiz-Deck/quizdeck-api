@@ -5,14 +5,14 @@ module.exports = {
 
     //Create a question
     create: async function (req, res) {
-        if (!req.body.title) {
+        if (!req.body.question) {
             return res.status(400).json({ message: "You cannnot create a question without asking a question" });
         }
         if (!req.params.deckId) {
             return res.status(400).json({ message: "Deck id is required" });
         }
         if (!req.body.answer) {
-            return res.status(400).json({ message: "You need to provide an acceptable answer for your question" });
+            return res.status(400).json({ message: "You need to provide an answer for your question" });
         }
         if (!req.body.type) {
             return res.status(400).json({ message: "What type of question do you want to create?" });
@@ -32,10 +32,10 @@ module.exports = {
                     });
                 }
                 var Question = new QuestionModel({
-                    title: req.body.title,
+                    question: req.body.question,
                     type: req.body.type,
-                    questiondeck: req.params.deckId,
-                    questionoptions: req.body.questionoptions,
+                    deck: req.params.deckId,
+                    multichoiceOptions: req.body.multichoiceOptions,
                     answer: req.body.answer
                 });
     
@@ -46,11 +46,10 @@ module.exports = {
                         error: err
                     });
                 }
-                    let updatedeck = await DeckModel.findOneAndUpdate({_id: req.params.deckId}, {$push: {"deckquestions" : Question._id}}).exec();
+                    let updatedeck = await DeckModel.findOneAndUpdate({_id: req.params.deckId}, {$push: {"questions" : Question._id}}).exec();
                     if(updatedeck){
                         return res.status(201).json({ message: 'Question created successfully', data: Question });
                     }
-                    console.log(updatedeck, 'i am the update')
                   
                 });
             });
@@ -81,9 +80,9 @@ module.exports = {
                     });
                 }
     
-                Question.title = req.body.title ? req.body.title : Question.title;
+                Question.question = req.body.question ? req.body.question : Question.question;
                 Question.type = req.body.type ? req.body.type : Question.type;
-                Question.questionoptions = req.body.questionoptions ? req.body.questionoptions : Question.questionoptions;
+                Question.multichoiceOptions = req.body.multichoiceOptions ? req.body.multichoiceOptions : Question.multichoiceOptions;
                 Question.answer = req.body.answer ? req.body.answer : Question.answer;
                 
                 Question.save(function (err, Question) {
