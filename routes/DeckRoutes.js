@@ -13,11 +13,11 @@ router.get('/public', DeckController.public);
 //Edit a deck
 router.put('/edit/:id', middlewares.checkToken, DeckController.update);
 
-//Get a particular deck
-router.get('/:id', middlewares.checkToken, DeckController.getone);
-
 //Get all decks for a user
 router.get('/user',middlewares.checkToken, DeckController.userdeck);
+
+//Get a particular deck
+router.get('/:id', middlewares.checkToken, DeckController.getone);
 
 //Delete a deck
 router.delete('/:id', middlewares.checkToken, DeckController.delete);
