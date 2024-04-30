@@ -19,6 +19,9 @@ router.get('/user',middlewares.checkToken, DeckController.userdeck);
 //Get a particular deck
 router.get('/:id', middlewares.checkToken, DeckController.getone);
 
+//Like or Unlike a deck
+router.put('/:deckId/like', middlewares.checkToken, DeckController.toggleLike);
+
 //Delete a deck
 router.delete('/:id', middlewares.checkToken, DeckController.delete);
 

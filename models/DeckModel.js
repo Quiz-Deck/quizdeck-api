@@ -16,7 +16,12 @@ var DeckSchema = new Schema({
         default: "PRIVATE"
     },
     'playCount': { type: Number, default: 0 },
-    'likeCount': { type: Number, default: 0 },
+    'likes': [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'User' 
+        }
+    ],
     'status': {
         type: String,
         enum: ["DRAFT", "PUBLISHED"],

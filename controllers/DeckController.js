@@ -17,6 +17,7 @@ module.exports = {
                 deckGuests: req.body.guests,
                 type: req.body.type,
                 status: req.body.status,
+                timer: req.body.timer
             });
 
             Deck.save(function (err, Deck) {
@@ -40,7 +41,7 @@ module.exports = {
     //Edit deck details
     update: function (req, res) {
         var id = req.params.id;
-        DeckModel.findOne({_id: id}, function (err, Deck) {
+        DeckModel.findOne({ _id: id }, function (err, Deck) {
             if (err) {
                 return res.status(500).json({
                     message: 'Error when getting Deck',
@@ -53,52 +54,68 @@ module.exports = {
                 });
             }
 
-            if(req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE"){
+            if (req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE") {
                 return res.status(500).json({
                     message: 'Private can only be edited by creator',
                     error: err
                 });
             }
             Deck.title = req.body.title ? req.body.title : Deck.title;
-			Deck.description = req.body.description ? req.body.description : Deck.description;
-			Deck.type = req.body.type ? req.body.type : Deck.type;
+            Deck.description = req.body.description ? req.body.description : Deck.description;
+            Deck.type = req.body.type ? req.body.type : Deck.type;
             Deck.updatedBy = req.verified._id;
             Deck.status = req.body.status ? req.body.status : Deck.status;
             Deck.deckGuests = req.body.deckGuests ? req.body.deckGuests : Deck.deckGuests,
-			
-            Deck.save(function (err, Deck) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when updating Deck.',
-                        error: err
-                    });
-                }
+                Deck.timer = req.body.timer ? req.body.timer : Deck.timer,
 
-                return res.json({ message: "Deck updated successfully", data: Deck});
-            });
+                Deck.save(function (err, Deck) {
+                    if (err) {
+                        return res.status(500).json({
+                            message: 'Error when updating Deck.',
+                            error: err
+                        });
+                    }
+
+                    return res.json({ message: "Deck updated successfully", data: Deck });
+                });
         });
     },
 
     //Get one deck
     getone: async function (req, res) {
         var id = req.params.id;
-        try{
-            let Deck = await DeckModel.find({_id: id}).populate('questions').exec();
-            if(req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE"){
-                return res.status(500).json({
-                    message: 'Private decks can only be gotten by their creators',
-                    error: err
+        var userId = req.verified._id;
+        try {
+            let Deck = await DeckModel.findOne({ _id: id }).populate('questions').exec();
+            if (!Deck) {
+                return res.status(404).json({
+                    message: 'Deck not found'
                 });
             }
-            return res.status(200).json({message: "Deck gotten successfully!", data: Deck});
-        }
-        catch(err) {
+            if (req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE") {
+                return res.status(403).json({
+                    message: 'Private decks can only be accessed by their creators'
+                });
+            }
+
+
+            // Get the count of likes the deck has received
+            const likeCount = Deck.likes.length;
+            const userLiked = Deck.likes.includes(userId);
+
+            Deck = Deck.toObject();
+            delete Deck.likes;
+
+
+            return res.status(200).json({ message: "Deck gotten successfully!", data: { ...Deck, likeCount, userLiked } });
+        } catch (err) {
             return res.status(500).json({
                 message: 'Error when getting Deck.',
                 error: err
             });
         }
     },
+
 
     //Delete a deck
     delete: function (req, res) {
@@ -110,17 +127,29 @@ module.exports = {
                     error: err
                 });
             }
-            return res.json({message: "Deck deleted successfully"});
+            return res.json({ message: "Deck deleted successfully" });
         });
     },
 
     //Get  deck by a particular user
     userdeck: async function (req, res) {
-        try{
-            let Deck = await DeckModel.find({createdBy: req.verified._id}).populate('questions').exec();
-            return res.status(200).json({data: Deck});
+        const userId = req?.verified?._id;
+        try {
+            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id }).populate('questions').sort({ createdAt: -1 }).exec();
+           allUserDecks =allUserDecks.map(deck => {
+                const userLiked = deck.likes.includes(userId);
+                const likeCount = deck.likes.length;
+                deck = deck.toObject();
+                delete deck.likes;
+                return {
+                    ...deck,
+                    userLiked,
+                    likeCount
+                };
+            });
+            return res.status(200).json({ data: allUserDecks });
         }
-        catch(err) {
+        catch (err) {
             return res.status(500).json({
                 message: 'Error when getting Deck.',
                 error: err
@@ -130,17 +159,62 @@ module.exports = {
 
     //Get all public decks
     public: async function (req, res) {
-        try{
-            let alluserdecks = await DeckModel.find({type: "PUBLIC", status: "PUBLISHED"}).populate('questions').exec();
-            return res.status(200).json({message:"All Public Decks", data: alluserdecks});
+        const userId = req?.verified?._id;
+        try {
+            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" }).populate('questions').sort({ createdAt: -1 }).exec();
+
+
+            // Iterate through each deck and check if the user has liked it
+            allPublicDecks = allPublicDecks.map(deck => {
+                const userLiked = userId ? deck.likes.includes(userId) : false;
+                const likeCount = deck.likes.length;
+                deck = deck.toObject();
+                delete deck.likes;
+                return {
+                    ...deck,
+                    userLiked,
+                    likeCount
+                };
+            });
+
+            return res.status(200).json({ message: "All Public Decks", data: allPublicDecks });
         }
-        catch(err) {
+        catch (err) {
             return res.status(500).json({
                 message: 'Error when getting Deck.',
                 error: err
             });
         }
     },
+
+    // Like or unlike a deck
+    toggleLike: async function (req, res) {
+        try {
+            const deckId = req.params.deckId;
+            const userId = req.verified._id;
+
+            let deck = await DeckModel.findById(deckId);
+            if (!deck) {
+                return res.status(404).json({ message: 'Deck not found' });
+            }
+
+            // Check if the user has already liked the deck
+            const index = deck.likes.indexOf(userId);
+            if (index === -1) {
+                // User hasn't liked the deck, so add their ID to the likes array
+                deck.likes.push(userId);
+                await deck.save();
+                return res.status(200).json({ message: 'Deck liked successfully' });
+            } else {
+                // User has already liked the deck, so remove their ID from the likes array
+                deck.likes.splice(index, 1);
+                await deck.save();
+                return res.status(200).json({ message: 'Deck unliked successfully' });
+            }
+        } catch (error) {
+            return res.status(500).json({ message: 'Error processing request', error: error });
+        }
+    }
 
 
 }

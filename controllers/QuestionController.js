@@ -5,63 +5,60 @@ module.exports = {
 
     //Create a question
     create: async function (req, res) {
-        if (!req.body.question) {
-            return res.status(400).json({ message: "You cannnot create a question without asking a question" });
+        // Check if the request body contains an array of questions
+        if (!Array.isArray(req.body)) {
+            return res.status(400).json({ message: "Invalid request format. An array of questions is required." });
         }
-        if (!req.params.deckId) {
-            return res.status(400).json({ message: "Deck id is required" });
-        }
-        if (!req.body.answer) {
-            return res.status(400).json({ message: "You need to provide an answer for your question" });
-        }
-        if (!req.body.type) {
-            return res.status(400).json({ message: "What type of question do you want to create?" });
-        }
+    
         try {
-
-            DeckModel.findOne({_id: req.params.deckId}, function (err, Deck) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when getting Deck.',
-                        error: err
-                    });
+            // Initialize an array to store the created questions
+            let createdQuestions = [];
+    
+            // Iterate over each question in the array
+            for (let questionData of req.body) {
+                // Validate if the required fields are present in the request
+                if (!questionData.question || !questionData.answer || !questionData.type || !req.params.deckId) {
+                    return res.status(400).json({ message: "Incomplete question data. Question, answer, type, and deckId are required." });
                 }
-                if (!Deck) {
-                    return res.status(404).json({
-                        message: 'Deck does not exist'
-                    });
+    
+                // Check if the deck exists
+                const deck = await DeckModel.findOne({ _id: req.params.deckId });
+                if (!deck) {
+                    return res.status(404).json({ message: 'Deck does not exist' });
                 }
-                var Question = new QuestionModel({
-                    question: req.body.question,
-                    type: req.body.type,
+    
+                // Create a new question based on the request data
+                let newQuestion = new QuestionModel({
+                    question: questionData.question,
+                    type: questionData.type,
                     deck: req.params.deckId,
-                    multichoiceOptions: req.body.multichoiceOptions,
-                    answer: req.body.answer
+                    multichoiceOptions: questionData.multichoiceOptions,
+                    answer: questionData.answer
                 });
     
-                Question.save(async function (err, Question) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when creating Question',
-                        error: err
-                    });
-                }
-                    let updatedeck = await DeckModel.findOneAndUpdate({_id: req.params.deckId}, {$push: {"questions" : Question._id}}).exec();
-                    if(updatedeck){
-                        return res.status(201).json({ message: 'Question created successfully', data: Question });
-                    }
-                  
-                });
-            });
-
+                // Save the new question to the database
+                await newQuestion.save();
+    
+                // Update the deck to include the newly created question
+                await DeckModel.findOneAndUpdate(
+                    { _id: req.params.deckId },
+                    { $push: { "questions": newQuestion._id } }
+                );
+    
+                // Add the created question to the array of created questions
+                createdQuestions.push(newQuestion);
+            }
+    
+            // Return the array of created questions
+            return res.status(201).json({ message: 'Questions created successfully', data: createdQuestions });
         } catch (error) {
-
             return res.status(500).json({
                 message: 'Error processing requests.',
                 error: error
             });
         }
     },
+    
 
 
     //Edit a question
