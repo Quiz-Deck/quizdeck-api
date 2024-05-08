@@ -5,6 +5,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const appstorage = require("./utils/nodepersist");
+require('dotenv').config()
 
 
 let mongoose = require('mongoose'); // for working w/ our database
@@ -50,6 +51,7 @@ app.use('/question', questionRoutes);
 app.use(function(req, res) {
   return res.status(404).send({ message: 'The url you visited does not exist' });
 });
+
 
 app.listen(config.port, () => {
   console.log(`Example app listening at http://localhost:${config.port}`)
