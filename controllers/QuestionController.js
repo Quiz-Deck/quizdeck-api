@@ -62,70 +62,74 @@ module.exports = {
 
 
     //Edit a question
-        update: function (req, res) {
-            var id = req.params.id;
-            QuestionModel.findOne({_id: id}, function (err, Question) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when getting Question',
-                        error: err
-                    });
-                }
-                if (!Question) {
+    update: function (req, res) {
+        var id = req.params.id;
+        QuestionModel.findOne({ _id: id })
+            .then((question) => {
+                if (!question) {
                     return res.status(404).json({
                         message: 'Question does not exist'
                     });
                 }
-    
-                Question.question = req.body.question ? req.body.question : Question.question;
-                Question.type = req.body.type ? req.body.type : Question.type;
-                Question.multichoiceOptions = req.body.multichoiceOptions ? req.body.multichoiceOptions : Question.multichoiceOptions;
-                Question.answer = req.body.answer ? req.body.answer : Question.answer;
                 
-                Question.save(function (err, Question) {
-                    if (err) {
-                        return res.status(500).json({
-                            message: 'Error when updating Question.',
-                            error: err
-                        });
-                    }
+                question.question = req.body.question || question.question;
+                question.type = req.body.type || question.type;
+                question.multichoiceOptions = req.body.multichoiceOptions || question.multichoiceOptions;
+                question.answer = req.body.answer || question.answer;
     
-                    return res.json({ message: "Question updated successfully", data: Question});
+                return question.save();
+            })
+            .then((updatedQuestion) => {
+                return res.json({ message: "Question updated successfully", data: updatedQuestion });
+            })
+            .catch((err) => {
+                return res.status(500).json({
+                    message: 'Error when updating Question.',
+                    error: err
                 });
             });
-        },
+    },
+    
 
     //Delete a question
     delete: function (req, res) {
         var id = req.params.id;
-        QuestionModel.findByIdAndRemove(id, function (err) {
-            if (err) {
+        QuestionModel.findByIdAndDelete(id)
+            .then((deletedQuestion) => {
+                if (!deletedQuestion) {
+                    return res.status(404).json({
+                        message: 'Question not found'
+                    });
+                }
+                return res.json({ message: "Question deleted successfully" });
+            })
+            .catch((err) => {
                 return res.status(500).json({
                     message: 'Error when deleting this Question.',
                     error: err
                 });
-            }
-            return res.json({message: "Question deleted successfully"});
-        });
+            });
     },
+    
 
     //Get one question
     getone: function (req, res) {
         var id = req.params.id;
-        QuestionModel.findOne({_id: id}, function (err, Question) {
-            if (err) {
+        QuestionModel.findOne({ _id: id })
+            .then((question) => {
+                if (!question) {
+                    return res.status(404).json({
+                        message: 'No such Question found'
+                    });
+                }
+                return res.json({ message: "Found this Question", data: question });
+            })
+            .catch((err) => {
                 return res.status(500).json({
                     message: 'Error when getting Question.',
                     error: err
                 });
-            }
-            if (!Question) {
-                return res.status(404).json({
-                    message: 'No such Question found'
-                });
-            }
-            return res.json({message: "Found this Question", data: Question});
-        });
-    },
+            });
+    }
 
 }

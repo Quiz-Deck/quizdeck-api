@@ -19,17 +19,18 @@ module.exports = {
                 status: req.body.status,
                 timer: req.body.timer
             });
-
-            Deck.save(function (err, Deck) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when creating Deck',
-                        error: err
-                    });
+            Deck.save()
+            .then(deck =>{
+                if(deck){
+                    return res.status(201).json({ message: 'Deck created successfully', data: Deck }); 
                 }
-                return res.status(201).json({ message: 'Deck created successfully', data: Deck });
+            })
+            .catch(error => {
+                return res.status(500).json({
+                    message: 'Error when creating Deck',
+                    error: error
+                });
             });
-
         } catch (error) {
             return res.status(500).json({
                 message: 'Error processing requests.',
@@ -41,45 +42,47 @@ module.exports = {
     //Edit deck details
     update: function (req, res) {
         var id = req.params.id;
-        DeckModel.findOne({ _id: id }, function (err, Deck) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when getting Deck',
-                    error: err
-                });
-            }
-            if (!Deck) {
+        DeckModel.findOne({ _id: id })
+        .then((deck)=>{
+            if (!deck) {
                 return res.status(404).json({
                     message: 'Deck does not exist'
                 });
             }
-
-            if (req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE") {
+    
+            if (req.verified._id.toString() !== deck.createdBy.toString() && deck.type === "PRIVATE") {
                 return res.status(500).json({
-                    message: 'Private can only be edited by creator',
-                    error: err
+                    message: 'Private decks can only be edited by creator'
                 });
             }
-            Deck.title = req.body.title ? req.body.title : Deck.title;
-            Deck.description = req.body.description ? req.body.description : Deck.description;
-            Deck.type = req.body.type ? req.body.type : Deck.type;
-            Deck.updatedBy = req.verified._id;
-            Deck.status = req.body.status ? req.body.status : Deck.status;
-            Deck.deckGuests = req.body.deckGuests ? req.body.deckGuests : Deck.deckGuests,
-                Deck.timer = req.body.timer ? req.body.timer : Deck.timer,
-
-                Deck.save(function (err, Deck) {
-                    if (err) {
-                        return res.status(500).json({
-                            message: 'Error when updating Deck.',
-                            error: err
-                        });
-                    }
-
-                    return res.json({ message: "Deck updated successfully", data: Deck });
+            deck.title = req.body.title || deck.title;
+            deck.description = req.body.description || deck.description;
+            deck.type = req.body.type || deck.type;
+            deck.updatedBy = req.verified._id;
+            deck.status = req.body.status || deck.status;
+            deck.deckGuests = req.body.deckGuests || deck.deckGuests;
+            deck.timer = req.body.timer || deck.timer;
+            
+            deck.save()
+            .then((updatedDeck)=>{
+                return res.json({ message: "Deck updated successfully", data: updatedDeck });
+            })
+            .catch((saveError)=>{
+                return res.status(500).json({
+                    message: 'Error when updating Deck.',
+                    error: saveError
                 });
+            });
+            
+        })
+        .catch((findError)=>{
+            return res.status(500).json({
+                message: 'Error when getting Deck',
+                error: findError
+            });
         });
     },
+    
 
     //Get one deck
     getone: async function (req, res) {
@@ -92,7 +95,7 @@ module.exports = {
                     message: 'Deck not found'
                 });
             }
-            if (req.verified._id !== Deck.createdBy && Deck.type === "PRIVATE") {
+            if (req.verified._id.toString() !== Deck.createdBy.toString() && Deck.type === "PRIVATE") {
                 return res.status(403).json({
                     message: 'Private decks can only be accessed by their creators'
                 });
@@ -118,24 +121,29 @@ module.exports = {
 
 
     //Delete a deck
-    delete: function (req, res) {
-        var id = req.params.id;
-        DeckModel.findByIdAndRemove(id, function (err) {
-            if (err) {
-                return res.status(500).json({
-                    message: 'Error when deleting this Deck.',
-                    error: err
+    delete: async function (req, res) {
+        try {
+            var id = req.params.id;
+            const deletedDeck = await DeckModel.findOneAndDelete({ _id: id });
+            if (!deletedDeck) {
+                return res.status(404).json({
+                    message: 'Deck not found'
                 });
             }
             return res.json({ message: "Deck deleted successfully" });
-        });
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Error when deleting this Deck.',
+                error: error
+            });
+        }
     },
-
+    
     //Get  deck by a particular user
     userdeck: async function (req, res) {
         const userId = req?.verified?._id;
         try {
-            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id }).populate('questions').sort({ createdAt: -1 }).exec();
+            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id }).populate('questions').sort({ updatedOn: -1 }).exec();
            allUserDecks =allUserDecks.map(deck => {
                 const userLiked = deck.likes.includes(userId);
                 const likeCount = deck.likes.length;
@@ -161,7 +169,7 @@ module.exports = {
     public: async function (req, res) {
         const userId = req?.verified?._id;
         try {
-            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" }).populate('questions').sort({ createdAt: -1 }).exec();
+            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" }).populate('questions').sort({ updatedOn: -1 }).exec();
 
 
             // Iterate through each deck and check if the user has liked it

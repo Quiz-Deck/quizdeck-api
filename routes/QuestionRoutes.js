@@ -9,7 +9,7 @@ var middlewares = require("../utils/middleware.js");
 router.post('/create/:deckId', middlewares.checkToken, QuestionController.create);
 
 //Edit a question
-router.post('/edit/:id', middlewares.checkToken, QuestionController.update);
+router.put('/edit/:id', middlewares.checkToken, QuestionController.update);
 
 //Delete a question
 router.delete('/:id', middlewares.checkToken, QuestionController.delete);

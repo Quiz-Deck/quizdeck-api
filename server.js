@@ -12,7 +12,7 @@ let mongoose = require('mongoose'); // for working w/ our database
 let config = require('./config');
 
 mongoose.Promise = global.Promise;
-mongoose.connect(config.database, { useUnifiedTopology: true, useFindAndModify: false, useNewUrlParser: true });
+mongoose.connect(config.database);
 
 if(!appstorage.get("blacklist")) { //for setting the stage for storing expired tokens.
   appstorage.set("blacklist", []);

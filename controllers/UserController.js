@@ -6,7 +6,7 @@ var jwt = require('jsonwebtoken');
 
 module.exports = {
 
-    register:  async function (req, res) {
+    register: async function (req, res) {
         if (!req.body.email) {
             return res.status(400).json({ message: "Email address is required." });
         }
@@ -16,46 +16,44 @@ module.exports = {
         if (!req.body.password) {
             return res.status(400).json({ message: "Provide a password to secure your account." });
         }
-
+    
         try {
             let user = await UserModel.findOne({ email: req.body.email.trim().toLowerCase() }).exec();
-
+    
             if (user) {
                 return res.status(404).json({
                     success: false,
                     message: 'User already exists.',
                 });
             }
-
-            var User = new UserModel({
+    
+            var newUser = new UserModel({
                 email: req.body.email,
                 userName: req.body.userName,
                 phoneNumber: req.body.phoneNumber,
                 password: req.body.password,
             });
     
-            User.save(function (err, User) {
-                if (err) {
-                    return res.status(500).json({
-                        message: 'Error when creating User',
-                        error: err
-                    });
-                }
-                const responseUser = { ...User._doc };
+            newUser.save()
+            .then((savedUser)=>{
+                const responseUser = { ...savedUser._doc };
                 delete responseUser.password;
                 return res.status(201).json({ message: 'User created successfully', data: responseUser });
+            })
+            .catch((err)=>{
+                return res.status(500).json({
+                    message: 'Error when creating User',
+                    error: err
+                });
             });
         } catch (error) {
-
             return res.status(500).json({
                 message: 'Error processing requests.',
                 error: error
             });
         }
-       
-
     },
-
+    
     login: async function (req, res) {
         if (!req.body.email) return res.status(400).json({ message: "email-required" });
         if (!req.body.password) return res.status(400).json({ message: "password-required" });
