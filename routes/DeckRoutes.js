@@ -17,7 +17,7 @@ router.put('/edit/:id', middlewares.checkToken, DeckController.update);
 router.get('/user',middlewares.checkToken, DeckController.userdeck);
 
 //Get a particular deck
-router.get('/:id', middlewares.checkToken, DeckController.getone);
+router.get('/:id', DeckController.getone);
 
 //Like or Unlike a deck
 router.put('/:deckId/like', middlewares.checkToken, DeckController.toggleLike);
