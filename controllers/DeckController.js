@@ -89,7 +89,16 @@ module.exports = {
         var {id} = req.params;
         var {userId} = req.query;
         try {
-            let Deck = await DeckModel.findOne({ _id: id }).populate('questions').exec();
+            let Deck = await DeckModel.findOne({ _id: id })
+            .populate({
+                path: 'questions'
+            })
+            .populate({
+                path: 'createdBy',
+                select: 'userName email'
+            })
+            .exec();
+
             if (!Deck) {
                 return res.status(404).json({
                     message: 'Deck not found'
@@ -143,7 +152,16 @@ module.exports = {
     userdeck: async function (req, res) {
         const userId = req?.verified?._id;
         try {
-            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id }).populate('questions').sort({ updatedOn: -1 }).exec();
+            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id })
+            .populate({
+                path: 'questions'
+            })
+            .populate({
+                path: 'createdBy',
+                select: 'userName email'
+            })
+            .sort({ updatedOn: -1 })
+            .exec();
            allUserDecks =allUserDecks.map(deck => {
                 const userLiked = deck.likes.includes(userId);
                 const likeCount = deck.likes.length;
@@ -169,7 +187,16 @@ module.exports = {
     public: async function (req, res) {
         const userId = req?.verified?._id;
         try {
-            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" }).populate('questions').sort({ updatedOn: -1 }).exec();
+            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" })
+            .populate({
+                path: 'questions'
+            })
+            .populate({
+                path: 'createdBy',
+                select: 'userName email'
+            })
+            .sort({ updatedOn: -1 })
+            .exec();
 
 
             // Iterate through each deck and check if the user has liked it
