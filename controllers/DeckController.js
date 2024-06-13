@@ -275,7 +275,6 @@ module.exports = {
     playDeck: async function (req, res) {
         try {
             const deckId = req.params.deckId;
-            const userId = req.verified._id;
     
             let deck = await DeckModel.findById(deckId);
             if (!deck) {
