@@ -198,6 +198,7 @@ module.exports = {
     //Get all public decks
     public: async function (req, res) {
         const userId = req?.verified?._id;
+        const {popular} = req.query
         const page = parseInt(req.query.page) || 1; // Current page, default is 1
         const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
     
@@ -210,7 +211,13 @@ module.exports = {
                     path: 'createdBy',
                     select: 'userName email'
                 })
-                .sort({ updatedOn: -1 });
+                
+
+                if(popular){
+                    query.sort({ likeCount: -1 });
+                }else{
+                    query.sort({ updatedOn: -1 });
+                }
     
             // Calculate the index of the first item in the current page
             const startIndex = (page - 1) * limit;
