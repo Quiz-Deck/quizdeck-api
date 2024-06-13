@@ -151,18 +151,28 @@ module.exports = {
     //Get  deck by a particular user
     userdeck: async function (req, res) {
         const userId = req?.verified?._id;
+        const page = parseInt(req.query.page) || 1; // Current page, default is 1
+        const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+    
         try {
-            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id })
-            .populate({
-                path: 'questions'
-            })
-            .populate({
-                path: 'createdBy',
-                select: 'userName email'
-            })
-            .sort({ updatedOn: -1 })
-            .exec();
-           allUserDecks =allUserDecks.map(deck => {
+            let query = DeckModel.find({ createdBy: req.verified._id })
+                .populate({
+                    path: 'questions'
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'userName email'
+                })
+                .sort({ updatedOn: -1 });
+    
+            // Calculate the index of the first item in the current page
+            const startIndex = (page - 1) * limit;
+    
+            // Fetch a subset of the results based on pagination parameters
+            const allUserDecks = await query.skip(startIndex).limit(limit).exec();
+    
+            // Iterate through each deck and check if the user has liked it
+            const paginatedDecks = allUserDecks.map(deck => {
                 const userLiked = deck.likes.includes(userId);
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
@@ -173,7 +183,8 @@ module.exports = {
                     likeCount
                 };
             });
-            return res.status(200).json({ data: allUserDecks });
+    
+            return res.status(200).json({ data: paginatedDecks });
         }
         catch (err) {
             return res.status(500).json({
@@ -182,6 +193,7 @@ module.exports = {
             });
         }
     },
+    
 
     //Get all public decks
     public: async function (req, res) {
