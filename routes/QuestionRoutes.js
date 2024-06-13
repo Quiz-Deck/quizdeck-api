@@ -19,7 +19,7 @@ router.get('/:id', middlewares.checkToken, QuestionController.getone);
 
 
 //Invite users to a question 
-
+// Research: Sending email invites to users
 
 
 
