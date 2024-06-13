@@ -86,8 +86,8 @@ module.exports = {
 
     //Get one deck
     getone: async function (req, res) {
-        var id = req.params.id;
-        var userId = req.verified._id;
+        var {id} = req.params;
+        var {userId} = req.query;
         try {
             let Deck = await DeckModel.findOne({ _id: id }).populate('questions').exec();
             if (!Deck) {
@@ -95,12 +95,11 @@ module.exports = {
                     message: 'Deck not found'
                 });
             }
-            if (req.verified._id.toString() !== Deck.createdBy.toString() && Deck.type === "PRIVATE") {
+            if (Deck.type === "PRIVATE" && userId.toString() !== Deck.createdBy.toString()) {
                 return res.status(403).json({
                     message: 'Private decks can only be accessed by their creators'
                 });
             }
-
 
             // Get the count of likes the deck has received
             const likeCount = Deck.likes.length;
@@ -119,6 +118,7 @@ module.exports = {
         }
     },
 
+    
 
     //Delete a deck
     delete: async function (req, res) {
