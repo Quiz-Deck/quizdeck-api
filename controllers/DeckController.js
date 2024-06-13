@@ -186,21 +186,28 @@ module.exports = {
     //Get all public decks
     public: async function (req, res) {
         const userId = req?.verified?._id;
+        const page = parseInt(req.query.page) || 1; // Current page, default is 1
+        const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+    
         try {
-            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" })
-            .populate({
-                path: 'questions'
-            })
-            .populate({
-                path: 'createdBy',
-                select: 'userName email'
-            })
-            .sort({ updatedOn: -1 })
-            .exec();
-
-
+            let query = DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" })
+                .populate({
+                    path: 'questions'
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'userName email'
+                })
+                .sort({ updatedOn: -1 });
+    
+            // Calculate the index of the first item in the current page
+            const startIndex = (page - 1) * limit;
+    
+            // Fetch a subset of the results based on pagination parameters
+            const allPublicDecks = await query.skip(startIndex).limit(limit).exec();
+    
             // Iterate through each deck and check if the user has liked it
-            allPublicDecks = allPublicDecks.map(deck => {
+            const paginatedDecks = allPublicDecks.map(deck => {
                 const userLiked = userId ? deck.likes.includes(userId) : false;
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
@@ -211,8 +218,8 @@ module.exports = {
                     likeCount
                 };
             });
-
-            return res.status(200).json({ message: "All Public Decks", data: allPublicDecks });
+    
+            return res.status(200).json({ message: "All Public Decks", data: paginatedDecks });
         }
         catch (err) {
             return res.status(500).json({
@@ -221,6 +228,7 @@ module.exports = {
             });
         }
     },
+    
 
     // Like or unlike a deck
     toggleLike: async function (req, res) {
