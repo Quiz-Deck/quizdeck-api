@@ -22,6 +22,10 @@ router.get('/:id', DeckController.getone);
 //Like or Unlike a deck
 router.put('/:deckId/like', middlewares.checkToken, DeckController.toggleLike);
 
+
+//Play a deck
+router.put('/:deckId/play', middlewares.checkToken, DeckController.playDeck);
+
 //Delete a deck
 router.delete('/:id', middlewares.checkToken, DeckController.delete);
 

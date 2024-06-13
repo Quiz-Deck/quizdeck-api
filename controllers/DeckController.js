@@ -249,7 +249,27 @@ module.exports = {
         } catch (error) {
             return res.status(500).json({ message: 'Error processing request', error: error });
         }
-    }
+    },
 
+    // Play deck
+    playDeck: async function (req, res) {
+        try {
+            const deckId = req.params.deckId;
+            const userId = req.verified._id;
+    
+            let deck = await DeckModel.findById(deckId);
+            if (!deck) {
+                return res.status(404).json({ message: 'Deck not found' });
+            }
+            
+            deck.playCount++;
+            await deck.save();
+    
+            return res.status(200).json({ message: 'Deck play count incremented successfully' });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error playing a deck', error: error.message });
+        }
+    }
+    
 
 }
