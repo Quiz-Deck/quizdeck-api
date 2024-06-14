@@ -1,5 +1,5 @@
 var DeckModel = require('../models/DeckModel');
-var UserModal = require('../models/UserModel');
+var UserModel = require('../models/UserModel');
 
 module.exports = {
 
@@ -309,28 +309,33 @@ module.exports = {
     inviteUser: async function (req, res) {
         const {email, deckId} = req.body
         try {
-           
-            // Find the deck
-            let deck = await DeckModel.findById(deckId);
-            if (!deck) {
-                return res.status(404).json({ message: 'Deck not found' });
+            // Ensure user exists and fetch their _id
+            let user = await UserModel.findOne({ email });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
             }
-
-            let user = await UserModal.findOne({email})
-
+        
+            // Check if the user is the owner of the deck
             if (user._id.toString() === req.verified._id.toString()) {
                 return res.status(400).json({ message: `You (${email}) own this deck. Owners cannot be guests.` });
             }
-            
-            console.log(deck)
-            let guests = [...deck.deckGuests, user._id]
-            deck.deckGuests = guests
-            await deck.save();
-    
-            return res.status(200).json({ message: 'Invite sent to user successfully!' });
+        
+            // Update the deck to add user to deckGuests if not already present
+            let updatedDeck = await DeckModel.findOneAndUpdate(
+                { _id: deckId, deckGuests: { $ne: user._id } }, // $ne ensures user._id is not already in deckGuests
+                { $addToSet: { deckGuests: user._id } },        // $addToSet adds user._id to deckGuests if not present
+                { new: true }
+            );
+        
+            if (!updatedDeck) {
+                return res.status(404).json({ message: 'Error adding user to deck' });
+            }
+        
+            return res.status(200).json({ message: 'Invite sent to user successfully!', deck: updatedDeck });
         } catch (error) {
             return res.status(500).json({ message: 'Error adding user to deck', error: error.message });
         }
+        
     }
         
 }
