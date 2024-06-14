@@ -323,8 +323,8 @@ module.exports = {
             }
             
             console.log(deck)
-            let guests = [...deck.guests || [], user._id]
-            deck.guests = guests
+            let guests = [...deck.deckGuests, user._id]
+            deck.deckGuests = guests
             await deck.save();
     
             return res.status(200).json({ message: 'Invite sent to user successfully!' });
