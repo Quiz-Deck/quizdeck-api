@@ -1,5 +1,5 @@
 var DeckModel = require('../models/DeckModel');
-
+var UserModal = require('../models/UserModel');
 
 module.exports = {
 
@@ -307,20 +307,24 @@ module.exports = {
 
     // Invite user to a deck
     inviteUser: async function (req, res) {
+        const {email, deckId} = req.body
         try {
-            const deckId = req.params.deckId;
-    
+           
+            // Find the deck
             let deck = await DeckModel.findById(deckId);
             if (!deck) {
                 return res.status(404).json({ message: 'Deck not found' });
             }
-            
-            deck.playCount++;
+
+            let user = await UserModal.findOne(email)
+            console.log(user)
+            let guests = [...deck.guests, user._id]
+            deck.guests = guests
             await deck.save();
     
-            return res.status(200).json({ message: 'Deck play count incremented successfully' });
+            return res.status(200).json({ message: 'Invite sent to user successfully!' });
         } catch (error) {
-            return res.status(500).json({ message: 'Error playing a deck', error: error.message });
+            return res.status(500).json({ message: 'Error adding user to deck', error: error.message });
         }
     }
         
