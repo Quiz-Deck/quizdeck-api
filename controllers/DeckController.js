@@ -97,6 +97,10 @@ module.exports = {
                 path: 'createdBy',
                 select: 'userName email'
             })
+            .populate({
+                path: 'deckGuests',
+                select: 'userName email'
+            })
             .exec();
 
             if (!Deck) {
