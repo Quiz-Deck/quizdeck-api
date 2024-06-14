@@ -1,5 +1,5 @@
 var DeckModel = require('../models/DeckModel');
-
+var UserModel = require('../models/UserModel');
 
 module.exports = {
 
@@ -97,6 +97,10 @@ module.exports = {
                 path: 'createdBy',
                 select: 'userName email'
             })
+            .populate({
+                path: 'deckGuests',
+                select: 'userName email'
+            })
             .exec();
 
             if (!Deck) {
@@ -151,18 +155,39 @@ module.exports = {
     //Get  deck by a particular user
     userdeck: async function (req, res) {
         const userId = req?.verified?._id;
+        const {popular} = req.query
+        const page = parseInt(req.query.page) || 1; // Current page, default is 1
+        const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+    
         try {
-            let allUserDecks = await DeckModel.find({ createdBy: req.verified._id })
-            .populate({
-                path: 'questions'
-            })
-            .populate({
-                path: 'createdBy',
-                select: 'userName email'
-            })
-            .sort({ updatedOn: -1 })
-            .exec();
-           allUserDecks =allUserDecks.map(deck => {
+            let query = DeckModel.find({ createdBy: req.verified._id })
+                .populate({
+                    path: 'questions'
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'userName email'
+                })
+                .populate({
+                    path: 'deckGuests',
+                    select: 'userName email'
+                })
+
+                if(popular){
+                    query.sort({ likeCount: -1 });
+                }else{
+                    query.sort({ updatedOn: -1 });
+                }
+    
+    
+            // Calculate the index of the first item in the current page
+            const startIndex = (page - 1) * limit;
+    
+            // Fetch a subset of the results based on pagination parameters
+            const allUserDecks = await query.skip(startIndex).limit(limit).exec();
+    
+            // Iterate through each deck and check if the user has liked it
+            const paginatedDecks = allUserDecks.map(deck => {
                 const userLiked = deck.likes.includes(userId);
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
@@ -173,7 +198,8 @@ module.exports = {
                     likeCount
                 };
             });
-            return res.status(200).json({ data: allUserDecks });
+    
+            return res.status(200).json({ data: paginatedDecks });
         }
         catch (err) {
             return res.status(500).json({
@@ -182,25 +208,44 @@ module.exports = {
             });
         }
     },
+    
 
     //Get all public decks
     public: async function (req, res) {
         const userId = req?.verified?._id;
+        const {popular} = req.query
+        const page = parseInt(req.query.page) || 1; // Current page, default is 1
+        const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+    
         try {
-            let allPublicDecks = await DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" })
-            .populate({
-                path: 'questions'
-            })
-            .populate({
-                path: 'createdBy',
-                select: 'userName email'
-            })
-            .sort({ updatedOn: -1 })
-            .exec();
+            let query = DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" })
+                .populate({
+                    path: 'questions'
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'userName email'
+                })
+                .populate({
+                    path: 'deckGuests',
+                    select: 'userName email'
+                })
+                
 
-
+                if(popular){
+                    query.sort({ likeCount: -1 });
+                }else{
+                    query.sort({ updatedOn: -1 });
+                }
+    
+            // Calculate the index of the first item in the current page
+            const startIndex = (page - 1) * limit;
+    
+            // Fetch a subset of the results based on pagination parameters
+            const allPublicDecks = await query.skip(startIndex).limit(limit).exec();
+    
             // Iterate through each deck and check if the user has liked it
-            allPublicDecks = allPublicDecks.map(deck => {
+            const paginatedDecks = allPublicDecks.map(deck => {
                 const userLiked = userId ? deck.likes.includes(userId) : false;
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
@@ -211,8 +256,8 @@ module.exports = {
                     likeCount
                 };
             });
-
-            return res.status(200).json({ message: "All Public Decks", data: allPublicDecks });
+    
+            return res.status(200).json({ message: "All Public Decks", data: paginatedDecks });
         }
         catch (err) {
             return res.status(500).json({
@@ -221,6 +266,7 @@ module.exports = {
             });
         }
     },
+    
 
     // Like or unlike a deck
     toggleLike: async function (req, res) {
@@ -255,7 +301,6 @@ module.exports = {
     playDeck: async function (req, res) {
         try {
             const deckId = req.params.deckId;
-            const userId = req.verified._id;
     
             let deck = await DeckModel.findById(deckId);
             if (!deck) {
@@ -269,7 +314,40 @@ module.exports = {
         } catch (error) {
             return res.status(500).json({ message: 'Error playing a deck', error: error.message });
         }
-    }
+    },
     
 
+    // Invite user to a deck
+    inviteUser: async function (req, res) {
+        const {email, deckId} = req.body
+        try {
+            // Ensure user exists and fetch their _id
+            let user = await UserModel.findOne({ email });
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+        
+            // Check if the user is the owner of the deck
+            if (user._id.toString() === req.verified._id.toString()) {
+                return res.status(400).json({ message: `You (${email}) own this deck. Owners cannot be guests.` });
+            }
+        
+            // Update the deck to add user to deckGuests if not already present
+            let updatedDeck = await DeckModel.findOneAndUpdate(
+                { _id: deckId, deckGuests: { $ne: user._id } },
+                { $addToSet: { deckGuests: user._id } },   
+                { new: true }
+            );
+        
+            if (!updatedDeck) {
+                return res.status(404).json({ message: 'Error adding user to deck' });
+            }
+        
+            return res.status(200).json({ message: 'Invite sent to user successfully!', deck: updatedDeck });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error adding user to deck', error: error.message });
+        }
+        
+    }
+        
 }

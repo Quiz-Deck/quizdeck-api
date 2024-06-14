@@ -29,6 +29,9 @@ router.put('/:deckId/play', middlewares.checkToken, DeckController.playDeck);
 //Delete a deck
 router.delete('/:id', middlewares.checkToken, DeckController.delete);
 
+//Invite User
+router.post('/invite', middlewares.checkToken, DeckController.inviteUser);
+
 
 
 
