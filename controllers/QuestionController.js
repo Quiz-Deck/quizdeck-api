@@ -26,7 +26,7 @@ module.exports = {
                 if (!deck) {
                     return res.status(404).json({ message: 'Deck does not exist' });
                 }
-    
+                //If it is a multihoice question, make sure it has more than one option
                 // Create a new question based on the request data
                 let newQuestion = new QuestionModel({
                     question: questionData.question,
