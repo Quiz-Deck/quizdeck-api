@@ -27,6 +27,10 @@ module.exports = {
                     return res.status(404).json({ message: 'Deck does not exist' });
                 }
                 //If it is a multihoice question, make sure it has more than one option
+
+                if(questionData.type === "MULTI_CHOICE" && questionData.multichoiceOptions.length < 2){
+                    return res.status(400).json({ message: 'Multichoice questions must have more than one options' });
+                }
                 // Create a new question based on the request data
                 let newQuestion = new QuestionModel({
                     question: questionData.question,
