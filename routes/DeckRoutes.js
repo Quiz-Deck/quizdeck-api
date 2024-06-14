@@ -30,7 +30,7 @@ router.put('/:deckId/play', middlewares.checkToken, DeckController.playDeck);
 router.delete('/:id', middlewares.checkToken, DeckController.delete);
 
 //Invite User
-router.post('/invite', middlewares.checkToken, DeckController.create);
+router.post('/invite', middlewares.checkToken, DeckController.inviteUser);
 
 
 

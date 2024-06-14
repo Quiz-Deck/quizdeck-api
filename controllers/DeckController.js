@@ -302,7 +302,26 @@ module.exports = {
         } catch (error) {
             return res.status(500).json({ message: 'Error playing a deck', error: error.message });
         }
-    }
+    },
     
 
+    // Invite user to a deck
+    inviteUser: async function (req, res) {
+        try {
+            const deckId = req.params.deckId;
+    
+            let deck = await DeckModel.findById(deckId);
+            if (!deck) {
+                return res.status(404).json({ message: 'Deck not found' });
+            }
+            
+            deck.playCount++;
+            await deck.save();
+    
+            return res.status(200).json({ message: 'Deck play count incremented successfully' });
+        } catch (error) {
+            return res.status(500).json({ message: 'Error playing a deck', error: error.message });
+        }
+    }
+        
 }
