@@ -316,7 +316,11 @@ module.exports = {
                 return res.status(404).json({ message: 'Deck not found' });
             }
 
-            let user = await UserModal.findOne(email)
+            let user = await UserModal.findOne({email})
+
+            if(user._id === req.verified._id){
+                return res.status(400).json({ message: `${email} owns this deck` });
+            }
             console.log(user)
             let guests = [...deck.guests, user._id]
             deck.guests = guests
