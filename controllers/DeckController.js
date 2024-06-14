@@ -334,8 +334,8 @@ module.exports = {
         
             // Update the deck to add user to deckGuests if not already present
             let updatedDeck = await DeckModel.findOneAndUpdate(
-                { _id: deckId, deckGuests: { $ne: user._id } }, // $ne ensures user._id is not already in deckGuests
-                { $addToSet: { deckGuests: user._id } },        // $addToSet adds user._id to deckGuests if not present
+                { _id: deckId, deckGuests: { $ne: user._id } },
+                { $addToSet: { deckGuests: user._id } },   
                 { new: true }
             );
         
