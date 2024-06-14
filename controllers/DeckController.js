@@ -318,11 +318,12 @@ module.exports = {
 
             let user = await UserModal.findOne({email})
 
-            if(user._id === req.verified._id){
-                return res.status(400).json({ message: `${email} owns this deck` });
+            if (user._id.toString() === req.verified._id.toString()) {
+                return res.status(400).json({ message: `You (${email}) own this deck. Owners cannot be guests.` });
             }
-            console.log(user)
-            let guests = [...deck.guests, user._id]
+            
+            console.log(deck)
+            let guests = [...deck.guests || [], user._id]
             deck.guests = guests
             await deck.save();
     
