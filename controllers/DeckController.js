@@ -116,7 +116,7 @@ module.exports = {
 
             // Get the count of likes the deck has received
             const likeCount = Deck.likes.length;
-            const userLiked = Deck.likes.includes(userId);
+            const userLiked = Deck.likes.includes(new ObjectId(userId));
 
             Deck = Deck.toObject();
             delete Deck.likes;
