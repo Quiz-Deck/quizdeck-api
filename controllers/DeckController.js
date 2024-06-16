@@ -229,7 +229,7 @@ module.exports = {
     //Get all public decks
     public: async function (req, res) {
         const userId = req?.verified?._id;
-        const {popular} = req.query
+        const { popular } = req.query;
         const page = parseInt(req.query.page) || 1; // Current page, default is 1
         const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
     
@@ -245,14 +245,24 @@ module.exports = {
                 .populate({
                     path: 'deckGuests',
                     select: 'userName email'
-                })
-                
-
-                if(popular){
-                    query.sort({ likeCount: -1 });
-                }else{
-                    query.sort({ updatedOn: -1 });
-                }
+                });
+    
+            if (popular) {
+                query.sort({ likeCount: -1 });
+            } else {
+                query.sort({ updatedOn: -1 });
+            }
+    
+            // Count total number of documents matching the query
+            const totalItems = await DeckModel.countDocuments({ type: "PUBLIC", status: "PUBLISHED" });
+    
+            // Calculate total pages
+            const totalPages = Math.ceil(totalItems / limit);
+    
+            // Ensure page number is within valid range
+            if (page < 1 || page > totalPages) {
+                return res.status(400).json({ message: 'Invalid page number' });
+            }
     
             // Calculate the index of the first item in the current page
             const startIndex = (page - 1) * limit;
@@ -273,7 +283,14 @@ module.exports = {
                 };
             });
     
-            return res.status(200).json({ message: "All Public Decks", data: paginatedDecks });
+            // Return paginated data along with pagination metadata
+            return res.status(200).json({
+                message: "All Public Decks",
+                data: paginatedDecks,
+                currPage: page,
+                totalPages: totalPages,
+                pageSize: paginatedDecks.length
+            });
         }
         catch (err) {
             return res.status(500).json({
@@ -282,6 +299,7 @@ module.exports = {
             });
         }
     },
+    
     
 
     // Like or unlike a deck
