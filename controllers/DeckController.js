@@ -272,7 +272,7 @@ module.exports = {
     
             // Iterate through each deck and check if the user has liked it
             const paginatedDecks = allPublicDecks.map(deck => {
-                const userLiked = userId ? deck.likes.includes(userId) : false;
+                const userLiked = userId ? deck.likes.includes(new ObjectId(userId)) : false;
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
                 delete deck.likes;
