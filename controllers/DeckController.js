@@ -198,8 +198,8 @@ module.exports = {
 
             // Iterate through each deck and check if the user has liked it
             const paginatedDecks = allUserDecks.map(deck => {
-                const userLiked = userId && Array.isArray(deck.likes) && deck.likes.length > 0
-                ? deck.likes.includes(new ObjectId(userId))
+                const userLiked = userId && deck.likes.length > 0
+                ? deck.likes.includes(userId)
                 : false;
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
