@@ -181,10 +181,10 @@ module.exports = {
     
             // Count total number of documents matching the query
             const totalItems = await DeckModel.countDocuments({ createdBy: req.verified._id });
-    
+
             // Calculate total pages
             const totalPages = Math.ceil(totalItems / limit);
-    
+          
             // Ensure page number is within valid range
             if (page < 1 || page > totalPages) {
                 return res.status(400).json({ message: 'Invalid page number' });
@@ -192,13 +192,15 @@ module.exports = {
     
             // Calculate the index of the first item in the current page
             const startIndex = (page - 1) * limit;
-    
+       
             // Fetch a subset of the results based on pagination parameters
             const allUserDecks = await query.skip(startIndex).limit(limit).exec();
-    
+
             // Iterate through each deck and check if the user has liked it
             const paginatedDecks = allUserDecks.map(deck => {
-                const userLiked = deck.likes.includes(new ObjectId(userId));
+                const userLiked = userId && Array.isArray(deck.likes) && deck.likes.length > 0
+                ? deck.likes.includes(new ObjectId(userId))
+                : false;
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
                 delete deck.likes;
@@ -208,7 +210,7 @@ module.exports = {
                     likeCount
                 };
             });
-    
+            
             // Return paginated data along with pagination metadata
             return res.status(200).json({
                 data: paginatedDecks,
