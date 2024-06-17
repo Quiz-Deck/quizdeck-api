@@ -89,7 +89,7 @@ module.exports = {
         var {id} = req.params;
         var {userId} = req.query;
         try {
-            let Deck = await DeckModel.findOne({ _id: id })
+            let deck = await DeckModel.findOne({ _id: id })
             .populate({
                 path: 'questions'
             })
@@ -102,27 +102,27 @@ module.exports = {
                 select: 'userName email'
             })
             .exec();
-
-            if (!Deck) {
+            if (!deck) {
                 return res.status(404).json({
                     message: 'Deck not found'
                 });
             }
-            if (Deck.type === "PRIVATE" && userId.toString() !== Deck.createdBy.toString()) {
+
+            if (deck.type === "PRIVATE" && userId.toString() !== deck.createdBy._id.toString()) {
                 return res.status(403).json({
                     message: 'Private decks can only be accessed by their creators'
                 });
             }
 
             // Get the count of likes the deck has received
-            const likeCount = Deck.likes.length;
-            const userLiked = Deck.likes.includes(new ObjectId(userId));
+            const likeCount = deck.likes.length;
+            const userLiked = userId && deck.likes.length > 0
+                ? deck.likes.includes(userId)
+                : false;
+            deck = deck.toObject();
+            delete deck.likes;
 
-            Deck = Deck.toObject();
-            delete Deck.likes;
-
-
-            return res.status(200).json({ message: "Deck gotten successfully!", data: { ...Deck, likeCount, userLiked } });
+            return res.status(200).json({ message: "Deck gotten successfully!", data: { ...deck, likeCount, userLiked } });
         } catch (err) {
             return res.status(500).json({
                 message: 'Error when getting Deck.',
