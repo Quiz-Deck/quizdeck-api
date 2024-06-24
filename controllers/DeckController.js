@@ -158,9 +158,9 @@ module.exports = {
         const { popular } = req.query;
         const page = parseInt(req.query.page) || 1; // Current page, default is 1
         const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
-    
         try {
-            let query = DeckModel.find({ createdBy: req.verified._id })
+            // Query for decks created by the user
+            let createdDecksQuery = DeckModel.find({ createdBy: userId })
                 .populate({
                     path: 'questions'
                 })
@@ -173,18 +173,52 @@ module.exports = {
                     select: 'userName email'
                 });
     
+            // Query for decks where the user is a guest
+            let guestDecksQuery = DeckModel.find({ deckGuests: userId })
+                .populate({
+                    path: 'questions'
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'userName email'
+                })
+                .populate({
+                    path: 'deckGuests',
+                    select: 'userName email'
+                });
+
+            
+    
+            // Apply sorting based on the query parameter
             if (popular) {
-                query.sort({ likeCount: -1 });
+                createdDecksQuery.sort({ likeCount: -1 });
+                guestDecksQuery.sort({ likeCount: -1 });
             } else {
-                query.sort({ updatedOn: -1 });
+                createdDecksQuery.sort({ updatedOn: -1 });
+                guestDecksQuery.sort({ updatedOn: -1 });
             }
     
-            // Count total number of documents matching the query
-            const totalItems = await DeckModel.countDocuments({ createdBy: req.verified._id });
-
+            // Fetch decks
+            const createdDecks = await createdDecksQuery.exec();
+            const guestDecks = await guestDecksQuery.exec();
+    
+            // Merge and remove duplicates
+            let allDecks = [...createdDecks, ...guestDecks];
+            const deckIds = new Set();
+            allDecks = allDecks.filter(deck => {
+                if (deckIds.has(deck._id.toString())) {
+                    return false;
+                }
+                deckIds.add(deck._id.toString());
+                return true;
+            });
+    
+            // Count total number of documents matching the merged result
+            const totalItems = allDecks.length;
+    
             // Calculate total pages
             const totalPages = Math.ceil(totalItems / limit);
-          
+    
             // Ensure page number is within valid range
             if (page < 1 || page > totalPages) {
                 return res.status(400).json({ message: 'Invalid page number' });
@@ -192,15 +226,11 @@ module.exports = {
     
             // Calculate the index of the first item in the current page
             const startIndex = (page - 1) * limit;
-       
+            const endIndex = Math.min(startIndex + limit, totalItems);
+    
             // Fetch a subset of the results based on pagination parameters
-            const allUserDecks = await query.skip(startIndex).limit(limit).exec();
-
-            // Iterate through each deck and check if the user has liked it
-            const paginatedDecks = allUserDecks.map(deck => {
-                const userLiked = userId && deck.likes.length > 0
-                ? deck.likes.includes(userId)
-                : false;
+            const paginatedDecks = allDecks.slice(startIndex, endIndex).map(deck => {
+                const userLiked = userId && deck.likes.length > 0 ? deck.likes.includes(userId) : false;
                 const likeCount = deck.likes.length;
                 deck = deck.toObject();
                 delete deck.likes;
@@ -210,7 +240,7 @@ module.exports = {
                     likeCount
                 };
             });
-            
+    
             // Return paginated data along with pagination metadata
             return res.status(200).json({
                 data: paginatedDecks,
@@ -218,14 +248,14 @@ module.exports = {
                 totalPages: totalPages,
                 pageSize: paginatedDecks.length
             });
-        }
-        catch (err) {
+        } catch (err) {
             return res.status(500).json({
                 message: 'Error when getting Deck.',
                 error: err
             });
         }
     },
+    
     
 
     //Get all public decks
