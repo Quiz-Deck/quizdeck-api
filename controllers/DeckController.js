@@ -86,42 +86,43 @@ module.exports = {
 
     //Get one deck
     getone: async function (req, res) {
-        var {id} = req.params;
-        var {userId} = req.query;
+        var { id } = req.params;
+        var { userId } = req.query;
+    
         try {
             let deck = await DeckModel.findOne({ _id: id })
-            .populate({
-                path: 'questions'
-            })
-            .populate({
-                path: 'createdBy',
-                select: 'userName email'
-            })
-            .populate({
-                path: 'deckGuests',
-                select: 'userName email'
-            })
-            .exec();
+                .populate({
+                    path: 'questions'
+                })
+                .populate({
+                    path: 'createdBy',
+                    select: 'userName email'
+                })
+                .populate({
+                    path: 'deckGuests',
+                    select: 'userName email'
+                })
+                .exec();
+    
             if (!deck) {
                 return res.status(404).json({
                     message: 'Deck not found'
                 });
             }
-
-            if (deck.type === "PRIVATE" && userId.toString() !== deck.createdBy._id.toString()) {
+    
+            // Check if the deck is private and the user is neither the creator nor a guest
+            if (deck.type === "PRIVATE" && userId.toString() !== deck.createdBy._id.toString() && !deck.deckGuests.some(guest => guest._id.toString() === userId.toString())) {
                 return res.status(403).json({
-                    message: 'Private decks can only be accessed by their creators'
+                    message: 'Private decks can only be accessed by their creators or guests'
                 });
             }
-
+    
             // Get the count of likes the deck has received
             const likeCount = deck.likes.length;
-            const userLiked = userId && deck.likes.length > 0
-                ? deck.likes.includes(userId)
-                : false;
+            const userLiked = userId && deck.likes.length > 0 ? deck.likes.includes(userId) : false;
             deck = deck.toObject();
             delete deck.likes;
-
+    
             return res.status(200).json({ message: "Deck gotten successfully!", data: { ...deck, likeCount, userLiked } });
         } catch (err) {
             return res.status(500).json({
@@ -130,6 +131,7 @@ module.exports = {
             });
         }
     },
+    
 
     
 
