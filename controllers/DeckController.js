@@ -222,7 +222,7 @@ module.exports = {
             const totalPages = Math.ceil(totalItems / limit);
     
             // Ensure page number is within valid range
-            if (page < 1 || page > totalPages) {
+            if (page < 1 || (page > totalPages && page !== 1)) {
                 return res.status(400).json({ message: 'Invalid page number' });
             }
     
@@ -294,7 +294,7 @@ module.exports = {
             const totalPages = Math.ceil(totalItems / limit);
     
             // Ensure page number is within valid range
-            if (page < 1 || page > totalPages) {
+            if (page < 1 || (page > totalPages && page !== 1)) {
                 return res.status(400).json({ message: 'Invalid page number' });
             }
     

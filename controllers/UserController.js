@@ -103,4 +103,8 @@ module.exports = {
         }
     },
 
+    googleAuth: async function(req, res){
+        
+    }
+
 }
