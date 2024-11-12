@@ -37,7 +37,8 @@ var DeckSchema = new Schema({
             },
             message: 'Timer must be a non-negative number (in minutes).'
         }
-    }
+    },
+    'category': String
 });
 
 module.exports = mongoose.model('Deck', DeckSchema);

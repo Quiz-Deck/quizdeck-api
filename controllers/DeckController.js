@@ -17,7 +17,8 @@ module.exports = {
                 deckGuests: req.body.guests,
                 type: req.body.type,
                 status: req.body.status,
-                timer: req.body.timer
+                timer: req.body.timer,
+                category: req.body.category
             });
             Deck.save()
             .then(deck =>{
@@ -131,9 +132,7 @@ module.exports = {
             });
         }
     },
-    
-
-    
+     
 
     //Delete a deck
     delete: async function (req, res) {
@@ -157,12 +156,22 @@ module.exports = {
     //Get  deck by a particular user
     userdeck: async function (req, res) {
         const userId = req?.verified?._id;
-        const { popular } = req.query;
+        const { popular, category } = req.query;
         const page = parseInt(req.query.page) || 1; // Current page, default is 1
         const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+        let filter = { createdBy: userId };
+        if (category) {
+            filter.category = category;
+        }
+
+        let guestFilter = { createdBy: userId };
+        if (category) {
+            guestFilter .category = category;
+        }
+
         try {
             // Query for decks created by the user
-            let createdDecksQuery = DeckModel.find({ createdBy: userId })
+            let createdDecksQuery = DeckModel.find(filter)
                 .populate({
                     path: 'questions'
                 })
@@ -176,7 +185,7 @@ module.exports = {
                 });
     
             // Query for decks where the user is a guest
-            let guestDecksQuery = DeckModel.find({ deckGuests: userId })
+            let guestDecksQuery = DeckModel.find(guestFilter)
                 .populate({
                     path: 'questions'
                 })
@@ -263,12 +272,17 @@ module.exports = {
     //Get all public decks
     public: async function (req, res) {
         const userId = req?.verified?._id;
-        const { popular } = req.query;
+        const { popular, category } = req.query;
         const page = parseInt(req.query.page) || 1; // Current page, default is 1
         const limit = parseInt(req.query.limit) || 10; // Number of items per page, default is 10
+
+        let filter = { type: "PUBLIC", status: "PUBLISHED" };
+        if (category) {
+            filter.category = category;
+        }
     
         try {
-            let query = DeckModel.find({ type: "PUBLIC", status: "PUBLISHED" })
+            let query = DeckModel.find(filter)
                 .populate({
                     path: 'questions'
                 })
@@ -288,7 +302,7 @@ module.exports = {
             }
     
             // Count total number of documents matching the query
-            const totalItems = await DeckModel.countDocuments({ type: "PUBLIC", status: "PUBLISHED" });
+            const totalItems = await DeckModel.countDocuments(filter);
     
             // Calculate total pages
             const totalPages = Math.ceil(totalItems / limit);
