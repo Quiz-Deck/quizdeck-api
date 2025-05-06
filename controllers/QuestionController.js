@@ -1,139 +1,173 @@
-var QuestionModel = require('../models/QuestionModel');
-var DeckModel = require('../models/DeckModel');
+var QuestionModel = require("../models/QuestionModel");
+var DeckModel = require("../models/DeckModel");
 
 module.exports = {
+  //Create a question
+  create: async function (req, res) {
+    // Check if the request body contains an array of questions
 
-    //Create a question
-    create: async function (req, res) {
-        // Check if the request body contains an array of questions
-        if (!Array.isArray(req.body)) {
-            return res.status(400).json({ message: "Invalid request format. An array of questions is required." });
-        }
-    
-        try {
-            // Initialize an array to store the created questions
-            let createdQuestions = [];
-    
-            // Iterate over each question in the array
-            for (let questionData of req.body) {
-                // Validate if the required fields are present in the request
-                if (!questionData.question || !questionData.answer || !questionData.type || !req.params.deckId) {
-                    return res.status(400).json({ message: "Incomplete question data. Question, answer, type, and deckId are required." });
-                }
-    
-                // Check if the deck exists
-                const deck = await DeckModel.findOne({ _id: req.params.deckId });
-                if (!deck) {
-                    return res.status(404).json({ message: 'Deck does not exist' });
-                }
-                //If it is a multihoice question, make sure it has more than one option
+    console.log("req.body", req.body);
+    console.log("req", req);
 
-                if(questionData.type === "MULTI_CHOICE" && questionData.multichoiceOptions.length < 2){
-                    return res.status(400).json({ message: 'Multichoice questions must have more than one options' });
-                }
-                // Create a new question based on the request data
-                let newQuestion = new QuestionModel({
-                    question: questionData.question,
-                    type: questionData.type,
-                    deck: req.params.deckId,
-                    multichoiceOptions: questionData.multichoiceOptions,
-                    answer: questionData.answer
-                });
-    
-                // Save the new question to the database
-                await newQuestion.save();
-    
-                // Update the deck to include the newly created question
-                await DeckModel.findOneAndUpdate(
-                    { _id: req.params.deckId },
-                    { $push: { "questions": newQuestion._id } }
-                );
-    
-                // Add the created question to the array of created questions
-                createdQuestions.push(newQuestion);
-            }
-    
-            // Return the array of created questions
-            return res.status(201).json({ message: 'Questions created successfully', data: createdQuestions });
-        } catch (error) {
-            return res.status(500).json({
-                message: 'Error processing requests.',
-                error: error
-            });
-        }
-    },
-    
+    return;
 
-
-    //Edit a question
-    update: function (req, res) {
-        var id = req.params.id;
-        QuestionModel.findOne({ _id: id })
-            .then((question) => {
-                if (!question) {
-                    return res.status(404).json({
-                        message: 'Question does not exist'
-                    });
-                }
-                
-                question.question = req.body.question || question.question;
-                question.type = req.body.type || question.type;
-                question.multichoiceOptions = req.body.multichoiceOptions || question.multichoiceOptions;
-                question.answer = req.body.answer || question.answer;
-    
-                return question.save();
-            })
-            .then((updatedQuestion) => {
-                return res.json({ message: "Question updated successfully", data: updatedQuestion });
-            })
-            .catch((err) => {
-                return res.status(500).json({
-                    message: 'Error when updating Question.',
-                    error: err
-                });
-            });
-    },
-    
-
-    //Delete a question
-    delete: function (req, res) {
-        var id = req.params.id;
-        QuestionModel.findByIdAndDelete(id)
-            .then((deletedQuestion) => {
-                if (!deletedQuestion) {
-                    return res.status(404).json({
-                        message: 'Question not found'
-                    });
-                }
-                return res.json({ message: "Question deleted successfully" });
-            })
-            .catch((err) => {
-                return res.status(500).json({
-                    message: 'Error when deleting this Question.',
-                    error: err
-                });
-            });
-    },
-    
-
-    //Get one question
-    getone: function (req, res) {
-        var id = req.params.id;
-        QuestionModel.findOne({ _id: id })
-            .then((question) => {
-                if (!question) {
-                    return res.status(404).json({
-                        message: 'No such Question found'
-                    });
-                }
-                return res.json({ message: "Found this Question", data: question });
-            })
-            .catch((err) => {
-                return res.status(500).json({
-                    message: 'Error when getting Question.',
-                    error: err
-                });
-            });
+    if (!Array.isArray(req.body)) {
+      return res.status(400).json({
+        message: "Invalid request format. An array of questions is required.",
+      });
     }
 
-}
+    try {
+      // Initialize an array to store the created questions
+      let createdQuestions = [];
+
+      // Inside your create method, before the for loop
+      const uploadedAudios = req.files; // This will be an array of files
+
+      // Then inside the for loop, per question:
+      let audioPaths = [];
+      if (uploadedAudios && uploadedAudios.length > 0) {
+        // This assumes each uploaded file relates to one question in the same order
+        audioPaths = uploadedAudios.map((file) => file.path); // Or use `file.filename` if serving from a static URL
+      }
+
+      // Iterate over each question in the array
+      for (let questionData of req.body) {
+        // Validate if the required fields are present in the request
+        if (
+          !questionData.question ||
+          !questionData.answer ||
+          !questionData.type ||
+          !req.params.deckId
+        ) {
+          return res.status(400).json({
+            message:
+              "Incomplete question data. Question, answer, type, and deckId are required.",
+          });
+        }
+
+        // Check if the deck exists
+        const deck = await DeckModel.findOne({ _id: req.params.deckId });
+        if (!deck) {
+          return res.status(404).json({ message: "Deck does not exist" });
+        }
+        //If it is a multihoice question, make sure it has more than one option
+
+        if (
+          questionData.type === "MULTI_CHOICE" &&
+          questionData.multichoiceOptions.length < 2
+        ) {
+          return res.status(400).json({
+            message: "Multichoice questions must have more than one options",
+          });
+        }
+        // Create a new question based on the request data
+        let newQuestion = new QuestionModel({
+          question: questionData.question,
+          type: questionData.type,
+          deck: req.params.deckId,
+          multichoiceOptions: questionData.multichoiceOptions,
+          answer: questionData.answer,
+          audio: audioPaths, // 👈 Assign audio file paths here
+          video: questionData.video,
+        });
+
+        // Save the new question to the database
+        await newQuestion.save();
+
+        // Update the deck to include the newly created question
+        await DeckModel.findOneAndUpdate(
+          { _id: req.params.deckId },
+          { $push: { questions: newQuestion._id } }
+        );
+
+        // Add the created question to the array of created questions
+        createdQuestions.push(newQuestion);
+      }
+
+      // Return the array of created questions
+      return res.status(201).json({
+        message: "Questions created successfully",
+        data: createdQuestions,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        message: "Error processing requests.",
+        error: error,
+      });
+    }
+  },
+
+  //Edit a question
+  update: function (req, res) {
+    var id = req.params.id;
+    QuestionModel.findOne({ _id: id })
+      .then((question) => {
+        if (!question) {
+          return res.status(404).json({
+            message: "Question does not exist",
+          });
+        }
+
+        question.question = req.body.question || question.question;
+        question.type = req.body.type || question.type;
+        question.multichoiceOptions =
+          req.body.multichoiceOptions || question.multichoiceOptions;
+        question.answer = req.body.answer || question.answer;
+
+        return question.save();
+      })
+      .then((updatedQuestion) => {
+        return res.json({
+          message: "Question updated successfully",
+          data: updatedQuestion,
+        });
+      })
+      .catch((err) => {
+        return res.status(500).json({
+          message: "Error when updating Question.",
+          error: err,
+        });
+      });
+  },
+
+  //Delete a question
+  delete: function (req, res) {
+    var id = req.params.id;
+    QuestionModel.findByIdAndDelete(id)
+      .then((deletedQuestion) => {
+        if (!deletedQuestion) {
+          return res.status(404).json({
+            message: "Question not found",
+          });
+        }
+        return res.json({ message: "Question deleted successfully" });
+      })
+      .catch((err) => {
+        return res.status(500).json({
+          message: "Error when deleting this Question.",
+          error: err,
+        });
+      });
+  },
+
+  //Get one question
+  getone: function (req, res) {
+    var id = req.params.id;
+    QuestionModel.findOne({ _id: id })
+      .then((question) => {
+        if (!question) {
+          return res.status(404).json({
+            message: "No such Question found",
+          });
+        }
+        return res.json({ message: "Found this Question", data: question });
+      })
+      .catch((err) => {
+        return res.status(500).json({
+          message: "Error when getting Question.",
+          error: err,
+        });
+      });
+  },
+};
